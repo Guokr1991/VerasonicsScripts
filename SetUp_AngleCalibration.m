@@ -686,7 +686,7 @@ saveData(IQData)
         
         %% Find RF max and lines in the image
         
-        maxRF = max(max(abs(RF)));
+        maxRF = max(mean(abs(RF)));
         
         
         
