@@ -44,6 +44,7 @@ clear all
 %Defining the directory by date, and then by the specified folder name.
 % IN THE FUTURE: Parameter for individual's name.
 
+% P holds most parameters for easy saving/passing into and out of functions
 P.path = 'C:/Users/verasonics/Documents/Ultrasound Data/';
 P.filePrefix = 'AngleCalibration';
 
@@ -64,6 +65,8 @@ P.powerSpectra = [];
 P.maxAng = 32; %Maximum angle for the acquisition in degrees, half the pk-pk angular range
 P.angInc = 4; %The angle increment in degrees.
 P.numAng = 2*floor(P.maxAng/P.angInc)+1; %How many angles we will measure at
+P.dTheta = P.angInc * pi/180; %Increment in radians
+P.startAngle = -floor(P.maxAng/P.angInc)*P.dTheta;
 
 P.psHandle = 1;
 P.rfHandle = []; %Handle for the RF figure
@@ -125,9 +128,11 @@ Media.attenuation = -0.5;
 Resource.RcvBuffer.datatype = 'int16';
 Resource.RcvBuffer.rowsPerFrame = 2*184320; % this should be larger than 128*Receive.endDepth*4 for max depth (doubled for 4X sampling)
 Resource.RcvBuffer.colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer.numFrames = 10; %todo: calculate the necessary number of frames
+Resource.RcvBuffer.numFrames = P.numAng; 
 Resource.InterBuffer(1).numFrames = 10;  % one intermediate buffer needed.
 Resource.ImageBuffer.numFrames = 50;
+
+%Specify the parameters and location of the display window
 Resource.DisplayWindow.Title = 'L22-14v128RyLns 4X sampling at 62.5 MHz';
 Resource.DisplayWindow.pdelta = 0.25;
 ScrnSize = get(0,'ScreenSize');
@@ -155,31 +160,12 @@ TX = repmat(struct('waveform', 1, ...
                    'Apod', zeros(1,Trans.numelements), ...
                    'Delay', zeros(1,Trans.numelements)), 1, P.numAng);
 
-% Determine transmit aperture based on focal point and desired f number.
-txFNum = 2;  % set to desired f-number value for transmit (range: 1.0 - 20)
-P.numTx = round((P.txFocus/txFNum)/Trans.spacing); % no. of elements in 1/2 aperture.
-txNumEl = floor(P.numTx/2);
-if txNumEl > (Trans.numelements/2 - 1), txNumEl = floor(Trans.numelements/2 - 1); end   
-% txNumEl is the number of elements to include on each side of the
-% center element, for the specified focus and sensitivity cutoff.
-% Thus the full transmit aperture will be 2*txNumEl + 1 elements.
-%display('Number of elements in transmit aperture:');
-%disp(2*txNumEl+1);
            
-% - Set ray specific transmit attributes.
-for n = 1:128   % 128 transmit events
-    % Set transmit Origins to positions of elements.
-    TX(n).Origin = [(-63.5 + (n-1))*Trans.spacing, 0.0, 0.0];
-    % Set transmit Apodization so (1 + 2*TXnumel) transmitters are active.
-    lft = n - txNumEl;
-    if lft < 1, lft = 1; end;
-    rt = n + txNumEl;
-    if rt > Trans.numelements, rt = Trans.numelements; end;
-    TX(n).Apod(lft:rt) = 1.0;
+% - Set up angle specific transmit events
+for n = 1:P.numAng
+    TX(n).Steer = [(P.startAngle + (n-1)*P.dTheta),0.0];
     TX(n).Delay = computeTXDelays(TX(n));
 end
-
-
 
 % sampling center frequency is 15.625, but we want the bandpass filter
 % centered on the actual transducer center frequency of 18 MHz with 67%
