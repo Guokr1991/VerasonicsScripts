@@ -125,10 +125,10 @@ Media.attenuation = -0.5;
 %Media.function = 'movePoints';
 
 % Specify Matlab space needed for the raw RF data.
-Resource.RcvBuffer.datatype = 'int16';
+Resource.RcvBuffer(1).datatype = 'int16';
 Resource.RcvBuffer.rowsPerFrame = 2*184320; % this should be larger than 128*Receive.endDepth*4 for max depth (doubled for 4X sampling)
 Resource.RcvBuffer.colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer.numFrames = P.numAng; 
+Resource.RcvBuffer.numFrames = 10; %Frames per angle 
 Resource.InterBuffer(1).numFrames = 10;  % one intermediate buffer needed.
 Resource.ImageBuffer.numFrames = 50;
 
@@ -192,14 +192,13 @@ Receive = repmat(struct('Apod', ones(1,Trans.numelements), ...
                         'sampleMode', 'NS200BW',...
                         'InputFilter', BPF1, ... 
                         'mode', 0, ...
-                        'callMediaFunc', 0), 1, P.numRays*Resource.RcvBuffer(1).numFrames);
+                        'callMediaFunc', 0), 1, P.numAng*Resource.RcvBuffer.numFrames);
 % - Set event specific Receive attributes.
-for i = 1:Resource.RcvBuffer(1).numFrames
-    k = P.numRays*(i-1);
-    Receive(k+1).callMediaFunc = 1;
-    for j = 1:P.numRays
-        Receive(k+j).framenum = i;
-        Receive(k+j).acqNum = j;
+for i = 1:Resource.RcvBuffer.numFrames
+    Receive(P.numAng(i-1)+1).callMediaFunc = 1;
+    for j = 1:P.numAng
+        Receive(P.numAng(i-1)+j).framenum = i;
+        Receive(P.numAng(i-1)+j).acqNum = j;
     end
 end
 
@@ -215,15 +214,15 @@ Recon = struct('senscutoff', 0.6, ...
                'rcvBufFrame',-1, ...
                'IntBufDest', [1,1], ...
                'ImgBufDest', [1,-1], ...
-               'RINums', 1:P.numRays);
+               'RINums', 1:P.numAng);
 
 % Define ReconInfo structures.
 ReconInfo = repmat(struct('mode', 0, ...  % replace intensity data
                    'txnum', 1, ...
                    'rcvnum', 1, ...
-                   'regionnum', 0), 1, P.numRays);
+                   'regionnum', 0), 1, P.numAng);
 % - Set specific ReconInfo attributes.
-for j = 1:P.numRays 
+for j = 1:P.numAng 
     ReconInfo(j).txnum = j;
     ReconInfo(j).rcvnum = j;
     ReconInfo(j).regionnum = j;
