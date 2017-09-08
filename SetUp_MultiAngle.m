@@ -61,10 +61,9 @@ P.itNumber = 1; %What iteration on the current run?
 P.axialWindow = 40; %Window around the focus for the power spectrum, sized in wavelengths
 P.powerSpectra = [];
 
-P.numAng = 17; %Number of angles the script measures for
-
-P.maxRF = []; %A list of the peak RF signal in the current run
-P.angles = []; %A list of the angles from the optical flat in the current run
+P.maxAng = 32; %Maximum angle for the acquisition in degrees, half the pk-pk angular range
+P.angInc = 4; %The angle increment in degrees.
+P.numAng = 2*floor(P.maxAng/P.angInc)+1; %How many angles we will measure at
 
 P.psHandle = 1;
 P.rfHandle = []; %Handle for the RF figure
@@ -126,7 +125,7 @@ Media.attenuation = -0.5;
 Resource.RcvBuffer.datatype = 'int16';
 Resource.RcvBuffer.rowsPerFrame = 2*184320; % this should be larger than 128*Receive.endDepth*4 for max depth (doubled for 4X sampling)
 Resource.RcvBuffer.colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer.numFrames = 10;
+Resource.RcvBuffer.numFrames = 10; %todo: calculate the necessary number of frames
 Resource.InterBuffer(1).numFrames = 10;  % one intermediate buffer needed.
 Resource.ImageBuffer.numFrames = 50;
 Resource.DisplayWindow.Title = 'L22-14v128RyLns 4X sampling at 62.5 MHz';
@@ -148,13 +147,13 @@ TW = struct('type','parametric',...
             'Parameters',[18,.67,3,1]);
 
 % Specify the element transmit instructions.
-% P.numRays TX structure arrays. Transmit centered on element n in the array for event n.
+% One transmit per angle
 TX = repmat(struct('waveform', 1, ...
                    'Origin', [0.0,0.0,0.0], ...
                    'focus', P.txFocus, ...
                    'Steer', [0.0,0.0], ...
                    'Apod', zeros(1,Trans.numelements), ...
-                   'Delay', zeros(1,Trans.numelements)), 1, P.numRays);
+                   'Delay', zeros(1,Trans.numelements)), 1, P.numAng);
 
 % Determine transmit aperture based on focal point and desired f number.
 txFNum = 2;  % set to desired f-number value for transmit (range: 1.0 - 20)
