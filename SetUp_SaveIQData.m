@@ -72,7 +72,7 @@ Resource.Parameters.numTransmit = 128;  % number of transmit channels.
 Resource.Parameters.numRcvChannels = 128;  % number of receive channels.
 Resource.Parameters.speedOfSound = 1540;
 Resource.Parameters.speedCorrectionFactor = 1.0;
-Resource.Parameters.simulateMode = 1;  
+Resource.Parameters.simulateMode = 0;  
 %  Resource.Parameters.simulateMode = 1 forces simulate mode, even if hardware is present.
 %  Resource.Parameters.simulateMode = 2 stops sequence and processes RcvData continuously.
 
@@ -376,7 +376,7 @@ frameRateFactor = 4;
 
 % Save all the structures to a .mat file.  In the currently designed
 % folder, with the current settings.
-save('MatFiles/AngleCalibration');
+save('MatFiles/IQData');
 
 
 
